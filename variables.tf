@@ -8,11 +8,12 @@ variable "environment" {
 }
 
 variable "subnet_ids" {
-  type        = "list"
+  type        = list(string)
   description = "Desired subnet with Internet and Consul access for Lambda Function"
 }
 
 variable "security_group_ids" {
+  type        = list(string)
   description = "Security Group IDs to allow Internet and Consul access for Lambda function"
 }
 
