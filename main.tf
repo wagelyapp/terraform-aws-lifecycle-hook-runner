@@ -84,8 +84,8 @@ EOF
 
 resource "aws_iam_policy_attachment" "lifecycle" {
   name       = "tf-iam-role-attachment-${var.name}-lifecycle"
-  roles      = ["${aws_iam_role.lifecycle_trust.name}"]
-  policy_arn = "${aws_iam_policy.lifecycle.arn}"
+  roles      = [aws_iam_role.lifecycle_trust.name]
+  policy_arn = aws_iam_policy.lifecycle.arn
 }
 
 # SNS for operator notification on Errors
@@ -99,7 +99,7 @@ resource "aws_lambda_function" "lifecycle" {
     function_name     = "${var.environment}-${var.name}-lifecycle"
     runtime           = "python2.7"
     timeout           = "240"
-    role              = "${aws_iam_role.lifecycle_trust.arn}"
+    role              = aws_iam_role.lifecycle_trust.arn
     handler           = "lifecycle.lambda_handler"
     source_code_hash  = filebase64sha256("${path.module}/lifecycle.py.zip")
     vpc_config {
@@ -109,11 +109,11 @@ resource "aws_lambda_function" "lifecycle" {
 
     environment {
       variables = {
-        CONSUL_URL  = "${var.consul_url}"
-        ENVIRONMENT = "${var.environment}"
-        SNS_ARN     = "${aws_sns_topic.operator.arn}"
-        COMMANDS    = "${var.commands}"
-        NAME        = "${var.name}"
+        CONSUL_URL  = var.consul_url
+        ENVIRONMENT = var.environment
+        SNS_ARN     = aws_sns_topic.operator.arn
+        COMMANDS    = var.commands
+        NAME        = var.name
       }
     }
   }
@@ -122,9 +122,9 @@ resource "aws_lambda_function" "lifecycle" {
 resource "aws_lambda_permission" "allow_lifecycle" {
   statement_id   = 45
   action         = "lambda:InvokeFunction"
-  function_name  = "${aws_lambda_function.lifecycle.function_name}"
+  function_name  = aws_lambda_function.lifecycle.function_name
   principal      = "sns.amazonaws.com"
-  source_arn     = "${aws_sns_topic.lifecycle.arn}"
+  source_arn     = aws_sns_topic.lifecycle.arn
 }
 
 # SNS Topic for the lifecycle hook
@@ -134,18 +134,18 @@ resource "aws_sns_topic" "lifecycle" {
 
 # Subscribe Lambda to the SNS Topic
 resource "aws_sns_topic_subscription" "lifecycle" {
-  topic_arn = "${aws_sns_topic.lifecycle.arn}"
+  topic_arn = aws_sns_topic.lifecycle.arn
   protocol  = "lambda"
-  endpoint  = "${aws_lambda_function.lifecycle.arn}"
+  endpoint  = aws_lambda_function.lifecycle.arn
 }
 
 resource "aws_autoscaling_lifecycle_hook" "lifecycle" {
-  depends_on              = ["aws_iam_policy_attachment.lifecycle"]
+  depends_on              = [aws_iam_policy_attachment.lifecycle]
   name                    = "${var.environment}-${var.name}-lifecycle"
-  autoscaling_group_name  = "${var.autoscaling_group_name}"
+  autoscaling_group_name  = var.autoscaling_group_name
   default_result          = "ABANDON"
   heartbeat_timeout       = 300
   lifecycle_transition    = "autoscaling:EC2_INSTANCE_TERMINATING"
-  notification_target_arn = "${aws_sns_topic.lifecycle.arn}"
-  role_arn                = "${aws_iam_role.lifecycle_trust.arn}"
+  notification_target_arn = aws_sns_topic.lifecycle.arn
+  role_arn                = aws_iam_role.lifecycle_trust.arn
 }
