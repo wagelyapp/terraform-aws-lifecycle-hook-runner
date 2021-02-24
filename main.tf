@@ -101,7 +101,7 @@ resource "aws_lambda_function" "lifecycle" {
     timeout           = "240"
     role              = "${aws_iam_role.lifecycle_trust.arn}"
     handler           = "lifecycle.lambda_handler"
-    source_code_hash  = "${base64sha256(file("${path.module}/lifecycle.py.zip"))}"
+    source_code_hash  = filebase64sha256("${path.module}/lifecycle.py.zip")
     vpc_config {
       subnet_ids          = var.subnet_ids
       security_group_ids  = var.security_group_ids
